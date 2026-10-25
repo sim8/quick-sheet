@@ -1,6 +1,12 @@
-import { memo, useState, type KeyboardEvent } from 'react';
+import { memo, type KeyboardEvent } from 'react';
 import { createRoot } from 'react-dom/client';
+import { useSheet } from './hooks/useSheet';
+import type { CellInput } from './types';
 import './styles.css';
+
+// functions
+// - Equals (cell)
+// - Sum (cell1, cell2 ...)
 
 const ROWS = 100;
 const COLUMNS = 100;
@@ -13,11 +19,22 @@ function columnLabel(index: number): string {
   return label;
 }
 
-const columns = Array.from({ length: COLUMNS }, (_, index) => columnLabel(index));
+const columns = Array.from({ length: COLUMNS }, (_, index) =>
+  columnLabel(index),
+);
 
-// Each cell owns its value: typing does not rerender the other 9,999 cells.
-const Cell = memo(function Cell({ row, column }: { row: number; column: number }) {
-  const [value, setValue] = useState('');
+const Cell = memo(function Cell({
+  row,
+  column,
+  input,
+  onChange,
+}: {
+  row: number;
+  column: number;
+  input: CellInput | undefined;
+  onChange: (column: string, row: string, input: CellInput) => void;
+}) {
+  const value = typeof input === 'object' ? 'FUNCTION' : String(input ?? '');
   const address = `${columns[column]}${row + 1}`;
 
   function navigate(event: KeyboardEvent<HTMLInputElement>) {
@@ -38,7 +55,9 @@ const Cell = memo(function Cell({ row, column }: { row: number; column: number }
         autoComplete="off"
         spellCheck={false}
         value={value}
-        onChange={(event) => setValue(event.target.value)}
+        onChange={(event) =>
+          onChange(columns[column], String(row + 1), event.target.value)
+        }
         onKeyDown={navigate}
       />
     </td>
@@ -46,22 +65,47 @@ const Cell = memo(function Cell({ row, column }: { row: number; column: number }
 });
 
 function App() {
+  const { sheetInputs, setCellInput } = useSheet();
+
   return (
     <main className="spreadsheet">
-      <section className="grid-scroll" aria-label="Editable spreadsheet" tabIndex={-1}>
+      <section
+        className="grid-scroll"
+        aria-label="Editable spreadsheet"
+        tabIndex={-1}
+      >
         <table aria-label="Sheet 1">
-          <colgroup><col className="row-number-column" />{columns.map((label) => <col key={label} />)}</colgroup>
+          <colgroup>
+            <col className="row-number-column" />
+            {columns.map((label) => (
+              <col key={label} />
+            ))}
+          </colgroup>
           <thead>
             <tr>
-              <th className="corner" aria-label="Row numbers"><span /></th>
-              {columns.map((label) => <th key={label} scope="col">{label}</th>)}
+              <th className="corner" aria-label="Row numbers">
+                <span />
+              </th>
+              {columns.map((label) => (
+                <th key={label} scope="col">
+                  {label}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
             {Array.from({ length: ROWS }, (_, row) => (
               <tr key={row}>
                 <th scope="row">{row + 1}</th>
-                {columns.map((label, column) => <Cell key={label} row={row} column={column} />)}
+                {columns.map((label, column) => (
+                  <Cell
+                    key={label}
+                    row={row}
+                    column={column}
+                    input={sheetInputs[label]?.[String(row + 1)]}
+                    onChange={setCellInput}
+                  />
+                ))}
               </tr>
             ))}
           </tbody>
@@ -69,8 +113,15 @@ function App() {
       </section>
 
       <footer className="sheet-footer">
-        <span className="all-sheets" aria-hidden="true">☰</span>
-        <div className="sheet-tab"><span className="tab-icon" aria-hidden="true">▦</span> Sheet 1</div>
+        <span className="all-sheets" aria-hidden="true">
+          ☰
+        </span>
+        <div className="sheet-tab">
+          <span className="tab-icon" aria-hidden="true">
+            ▦
+          </span>{' '}
+          Sheet 1
+        </div>
         <span className="footer-note">Changes stay in this session</span>
         <span className="zoom">100%</span>
       </footer>

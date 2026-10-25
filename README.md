@@ -12,3 +12,6 @@ Column headers (A–CV) and row numbers stay visible while scrolling. Tab moves
 between cells; Enter and Shift+Enter move down and up within a column.
 
 Run `npm run build` to type-check and produce the production app in `dist`.
+
+Run `npm run format` to format the project with Prettier, or `npm run format:check`
+to check formatting without changing files.
