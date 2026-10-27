@@ -1,4 +1,4 @@
-export type Functions = 'EQUALS' | 'SUM'
+export type Functions = 'SUM' | 'AVG'
 
 export type Cell = [string, string]
 
