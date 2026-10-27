@@ -3,7 +3,7 @@ export type Functions = 'SUM' | 'AVG'
 export type Cell = [string, string]
 
 export type FunctionInput = {
-    function: Function
+    function: Functions
     inputCells: Cell[]
 }
 

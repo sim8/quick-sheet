@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { CellInput } from '../types';
+import { parseFunction } from '../parseFunction';
 
 type SheetInputs = Record<string, CellInput>;
 
@@ -38,5 +39,23 @@ export function useSheet() {
         [],
     );
 
-    return { sheetInputs, setCellInput };
+    const onCellChange = useCallback(
+        (cellKey: string, value: string) => {
+            let input: CellInput = value;
+            const parsedFunction = parseFunction(value)
+
+            if (value.toUpperCase() === 'TRUE') {
+                input = true;
+            } else if (value.toUpperCase() === 'FALSE') {
+                input = false;
+            } else if (!Number.isNaN(parseInt(value))) {
+                input = parseInt(value);
+            } else if (parsedFunction) {
+                input = parsedFunction
+            }
+            setCellInput(cellKey, input)
+        }
+        , [])
+
+    return { sheetInputs, onCellChange };
 }

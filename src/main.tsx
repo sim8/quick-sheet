@@ -1,4 +1,4 @@
-import { memo, type KeyboardEvent } from 'react';
+import { memo, useState, type KeyboardEvent } from 'react';
 import { createRoot } from 'react-dom/client';
 import { useSheet } from './hooks/useSheet';
 import type { CellInput } from './types';
@@ -23,6 +23,15 @@ const columns = Array.from({ length: COLUMNS }, (_, index) =>
   columnLabel(index),
 );
 
+function editableInput(input: CellInput | undefined): string {
+  if (typeof input === 'object') {
+    return `=${input.function}(${input.inputCells.map(([column, row]) => `${column}${row}`).join(',')})`;
+  }
+  return typeof input === 'boolean'
+    ? String(input).toUpperCase()
+    : String(input ?? '');
+}
+
 const Cell = memo(function Cell({
   row,
   column,
@@ -32,18 +41,24 @@ const Cell = memo(function Cell({
   row: number;
   column: number;
   input: CellInput | undefined;
-  onChange: (cellKey: string, input: CellInput) => void;
+  onChange: (cellKey: string, rawInput: string) => void;
 }) {
-  const value = typeof input === 'object' ? 'FUNCTION' : String(input ?? '');
+  const [isEditing, setIsEditing] = useState(false);
+  const [draft, setDraft] = useState('');
+  const displayValue =
+    typeof input === 'object' ? 'FUNCTION' : editableInput(input);
+  const valueType = typeof input === 'boolean' ? String(input) : typeof input;
   const address = `${columns[column]}${row + 1}`;
 
   function navigate(event: KeyboardEvent<HTMLInputElement>) {
     // Arrow keys stay available for editing text inside the cell.
-    if (event.key !== 'Enter') return;
+    if (event.key !== 'Enter' || event.nativeEvent.isComposing) return;
     event.preventDefault();
     const nextRow = row + (event.shiftKey ? -1 : 1);
     if (nextRow >= 0 && nextRow < ROWS) {
       document.getElementById(`${columns[column]}${nextRow + 1}`)?.focus();
+    } else {
+      event.currentTarget.blur();
     }
   }
 
@@ -54,8 +69,17 @@ const Cell = memo(function Cell({
         aria-label={address}
         autoComplete="off"
         spellCheck={false}
-        value={value}
-        onChange={(event) => onChange(address, event.target.value)}
+        data-value-type={valueType}
+        value={isEditing ? draft : displayValue}
+        onFocus={() => {
+          setDraft(editableInput(input));
+          setIsEditing(true);
+        }}
+        onChange={(event) => setDraft(event.target.value)}
+        onBlur={() => {
+          setIsEditing(false);
+          onChange(address, draft);
+        }}
         onKeyDown={navigate}
       />
     </td>
@@ -63,7 +87,7 @@ const Cell = memo(function Cell({
 });
 
 function App() {
-  const { sheetInputs, setCellInput } = useSheet();
+  const { sheetInputs, onCellChange } = useSheet();
 
   return (
     <main className="spreadsheet">
@@ -101,7 +125,7 @@ function App() {
                     row={row}
                     column={column}
                     input={sheetInputs[`${label}${row + 1}`]}
-                    onChange={setCellInput}
+                    onChange={onCellChange}
                   />
                 ))}
               </tr>

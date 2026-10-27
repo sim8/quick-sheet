@@ -104,6 +104,15 @@ td input {
 td:focus-within {
   z-index: 1;
 }
+td input[data-value-type='string']:not(:focus) {
+  color: #b8e2f2;
+}
+td input[data-value-type='true']:not(:focus) {
+  color: #80d6a0;
+}
+td input[data-value-type='false']:not(:focus) {
+  color: #f28b82;
+}
 td input:focus {
   outline: 2px solid var(--blue);
   outline-offset: -1px;
