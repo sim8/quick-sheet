@@ -1,7 +1,7 @@
 import { memo, useState, type KeyboardEvent } from 'react';
 import { createRoot } from 'react-dom/client';
 import { useSheet } from './hooks/useSheet';
-import type { CellInput } from './types';
+import type { CellInput, CellValue } from './types';
 import './styles.css';
 
 // functions
@@ -25,7 +25,7 @@ const columns = Array.from({ length: COLUMNS }, (_, index) =>
 
 function editableInput(input: CellInput | undefined): string {
   if (typeof input === 'object') {
-    return `=${input.function}(${input.inputCells.map(([column, row]) => `${column}${row}`).join(',')})`;
+    return `=${input.functionName}(${input.inputCellKeys.join(',')})`;
   }
   return typeof input === 'boolean'
     ? String(input).toUpperCase()
@@ -36,17 +36,19 @@ const Cell = memo(function Cell({
   row,
   column,
   input,
+  computedInput,
   onChange,
 }: {
   row: number;
   column: number;
   input: CellInput | undefined;
+  computedInput: CellValue | undefined;
   onChange: (cellKey: string, rawInput: string) => void;
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState('');
   const displayValue =
-    typeof input === 'object' ? 'FUNCTION' : editableInput(input);
+    typeof input === 'object' ? computedInput : editableInput(input);
   const valueType = typeof input === 'boolean' ? String(input) : typeof input;
   const address = `${columns[column]}${row + 1}`;
 
@@ -87,7 +89,7 @@ const Cell = memo(function Cell({
 });
 
 function App() {
-  const { sheetInputs, onCellChange } = useSheet();
+  const { sheetInputs, computedValues, onCellChange } = useSheet();
 
   return (
     <main className="spreadsheet">
@@ -125,6 +127,7 @@ function App() {
                     row={row}
                     column={column}
                     input={sheetInputs[`${label}${row + 1}`]}
+                    computedInput={computedValues[`${label}${row + 1}`]}
                     onChange={onCellChange}
                   />
                 ))}

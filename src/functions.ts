@@ -1,10 +1,9 @@
-import { Functions } from "./types";
+import { FunctionName } from "./types";
 
-const functions: Record<Functions, (...inputs: number[]) => number> = {
+export const functions: Record<FunctionName, (...inputs: number[]) => number> = {
     SUM: (...nums: number[]) => nums.reduce((acc, i) => acc + i, 0),
     AVG: (...nums: number[]) => nums.reduce((acc, i) => acc + i, 0) / nums.length,
     // max
     // avg
 };
 
-export default functions;

@@ -1,39 +1,91 @@
 import { useCallback, useState } from 'react';
-import { CellInput } from '../types';
+import { CellInput, CellValue, FunctionInput } from '../types';
 import { parseFunction } from '../parseFunction';
+import { functions } from '../functions';
 
-type SheetInputs = Record<string, CellInput>;
-
-
-// Dependent cells. Two entrypoints
-// 1. Set cell to function. Compute from upstream
-// 2. Set cell to any value and has dependents - compute downstream
-// recursively:
-// Has value changed? 
-
-const dependencies = {
-    // [cellKey]: {
-    // subscribers: // set
-    //}
+function isFunctionInput(input: CellInput): input is FunctionInput {
+    return typeof input === 'object' && input !== null
 }
 
-// const computedValues = // map
+type Sheet = {
+    inputs: Record<string, CellInput>,
+    dependencies: Record<string, Set<string>>,
+    computedValues: Record<string, CellValue>
+}
 
 export function useSheet() {
-    const [sheetInputs, setSheetInputs] = useState<SheetInputs>({
-        'A2': 'Hello World',
+    const [sheet, setSheet] = useState<Sheet>({
+        inputs: { 'A2': 'Hello World' },
+        dependencies: {},
+        computedValues: {}
     });
 
     const setCellInput = useCallback(
         (cellKey: string, cellInput: CellInput) => {
-            setSheetInputs((sheetInputs) => {
-                const nextSheetInputs = { ...sheetInputs }
-                if (cellInput === '') {
-                    delete nextSheetInputs[cellKey]
-                } else {
-                    nextSheetInputs[cellKey] = cellInput;
+            setSheet(({ inputs, dependencies, computedValues }) => {
+                const nextInputs = { ...inputs }
+                const nextDependencies = { ...dependencies }
+                const nextComputedValues = { ...computedValues }
+
+
+                function computeNode(cellKey: string) {
+                    const input = nextInputs[cellKey]
+                    console.log({ input })
+                    if (!isFunctionInput(input)) {
+                        return;
+                    }
+                    const inputValues = input.inputCellKeys.map(inputCellKey => isFunctionInput(nextInputs[inputCellKey]) ? nextComputedValues[inputCellKey] : nextInputs[inputCellKey])
+                    console.log({ inputValues })
+
+                    let computedValue;
+                    if (inputValues.every(i => typeof i === 'number')) {
+                        computedValue = functions[input.functionName](...inputValues)
+                    } else {
+                        computedValue = NaN
+                    }
+                    console.log({ computedValue, prevComputedValue: computedValues[cellKey] })
+                    if (computedValue === computedValues[cellKey]) {
+                        return
+                    }
+                    nextComputedValues[cellKey] = computedValue;
+                    nextDependencies[cellKey]?.forEach(computeNode)
                 }
-                return nextSheetInputs;
+
+                if (cellInput === '') {
+                    delete nextInputs[cellKey]
+                    delete nextComputedValues[cellKey]
+                    const prevDependencies = isFunctionInput(inputs[cellKey]) ? inputs[cellKey].inputCellKeys : []
+                    prevDependencies.forEach(prevDependencyCellKey => {
+                        nextDependencies[prevDependencyCellKey].delete(cellKey)
+                        if (nextDependencies[prevDependencyCellKey].size === 0) {
+                            delete nextDependencies[prevDependencyCellKey]
+                        }
+                    })
+                } else {
+                    nextInputs[cellKey] = cellInput;
+                    if (isFunctionInput(cellInput)) {
+                        cellInput.inputCellKeys.forEach(dependencyCellKey => {
+                            nextDependencies[dependencyCellKey] = nextDependencies[dependencyCellKey] || new Set()
+                            nextDependencies[dependencyCellKey].add(cellKey)
+                        })
+                        computeNode(cellKey)
+                    } else {
+                        delete nextComputedValues[cellKey]
+                        nextDependencies[cellKey]?.forEach(computeNode)
+                    }
+                }
+                // TODO recursively update dependencies
+                // base case - computedValue unchanged or not more dependents
+                console.log({
+                    inputs: nextInputs,
+                    dependencies: nextDependencies,
+                    computedValues: nextComputedValues
+                })
+                return {
+                    inputs: nextInputs,
+                    dependencies: nextDependencies,
+                    computedValues: nextComputedValues
+                };
             })
         },
         [],
@@ -57,5 +109,5 @@ export function useSheet() {
         }
         , [])
 
-    return { sheetInputs, onCellChange };
+    return { sheetInputs: sheet.inputs, computedValues: sheet.computedValues, onCellChange };
 }

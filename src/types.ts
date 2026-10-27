@@ -1,10 +1,10 @@
-export type Functions = 'SUM' | 'AVG'
-
-export type Cell = [string, string]
+export type FunctionName = 'SUM' | 'AVG'
 
 export type FunctionInput = {
-    function: Functions
-    inputCells: Cell[]
+    functionName: FunctionName
+    inputCellKeys: string[]
 }
 
-export type CellInput = string | number | boolean | FunctionInput
+export type CellValue = string | number | boolean;
+
+export type CellInput = CellValue | FunctionInput
