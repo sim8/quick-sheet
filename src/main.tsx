@@ -32,7 +32,7 @@ const Cell = memo(function Cell({
   row: number;
   column: number;
   input: CellInput | undefined;
-  onChange: (column: string, row: string, input: CellInput) => void;
+  onChange: (cellKey: string, input: CellInput) => void;
 }) {
   const value = typeof input === 'object' ? 'FUNCTION' : String(input ?? '');
   const address = `${columns[column]}${row + 1}`;
@@ -55,9 +55,7 @@ const Cell = memo(function Cell({
         autoComplete="off"
         spellCheck={false}
         value={value}
-        onChange={(event) =>
-          onChange(columns[column], String(row + 1), event.target.value)
-        }
+        onChange={(event) => onChange(address, event.target.value)}
         onKeyDown={navigate}
       />
     </td>
@@ -102,7 +100,7 @@ function App() {
                     key={label}
                     row={row}
                     column={column}
-                    input={sheetInputs[label]?.[String(row + 1)]}
+                    input={sheetInputs[`${label}${row + 1}`]}
                     onChange={setCellInput}
                   />
                 ))}
